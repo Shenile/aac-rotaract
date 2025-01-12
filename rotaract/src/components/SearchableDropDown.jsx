@@ -36,12 +36,19 @@ const SearchableDropdown = ({ options, onChange, intialValue, regFormStyles = nu
     }
   };
 
+  const handleInputChange = (e) => {
+    setSearchText(e.target.value);
+    if (onChange) {
+      onChange(e.target.value); 
+    }
+  };
+
   return (
     <div className="relative w-full " ref={dropdownRef}>
       <input
         type="text"
         value={searchText}
-        onChange={(e) => setSearchText(e.target.value)}
+        onChange={handleInputChange}
         className={`${regFormStyles ? regFormStyles : "border rounded px-2 py-1 w-full focus:outline-none focus:border-2 focus:border-green-800"}`}
         placeholder= {placeholder ? placeholder : ''}
         onFocus={() => setIsOpen(true)}

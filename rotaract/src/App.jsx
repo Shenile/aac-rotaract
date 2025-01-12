@@ -14,6 +14,7 @@ import StudentProfile from "./components/Studentprofile";
 import ProtectedRoute from "./components/ProtectedRoute";
 import { useAuthContext } from "./contexts/AuthContext";
 import Home from "./components/Home";
+import PopUp from "./components/Popup";
 
 export default function App() {
   const [openSideBar, setOpenSideBar] = useState(false);
@@ -118,6 +119,9 @@ export default function App() {
           </div>
         </div>
       </div>
+
+      <PopUp/>
     </Router>
+
   );
 }

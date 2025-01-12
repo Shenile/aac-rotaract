@@ -1,5 +1,6 @@
 import axios from 'axios';
 
+
 const API_URL = 'http://localhost:8000'; 
 
 export const registerStudent = async (studentData) => {
@@ -20,6 +21,18 @@ export const getStudentRecords = async () => {
     try {
 
         const res = await axios.get(`${API_URL}/students/`)
+        return res.data;
+
+    } catch (err) {
+        console.error('Error Getting Student Data:', err);
+        throw err;
+    }
+};
+
+export const getStudentRecord = async (id) => {
+    try {
+
+        const res = await axios.get(`${API_URL}/students/${id}`)
         return res.data;
 
     } catch (err) {
@@ -56,6 +69,17 @@ export const deleteStudentRecord = async (id) => {
     }
 }
 
+export const deleteAllStudents = async () => {
+    try {
+        // Make the DELETE request to the backend API
+        const response = await axios.delete(`${API_URL}/students/`);
+        return response.data; // Return the response data
+    } catch (err) {
+        // Log the error details for debugging
+        console.error('Error deleting student records:', err.response?.data || err.message);
+        throw err; // Rethrow the error to handle it in the calling code
+    }
+};
 export const studentLogin = async (loginData) => {
     try {
         const response = await axios.post(`${API_URL}/student-login`, loginData, {
@@ -83,4 +107,25 @@ export const adminLogin = async (loginData) => {
         throw error;
     }
 }
+
+export const uploadFile = async (file) => {
+    try {
+      // Create a new FormData object to send the file as multipart/form-data
+      const formData = new FormData();
+      formData.append("file", file);  // 'file' is the name of the field in your FastAPI endpoint
+  
+      // Send the request with the FormData object
+      const response = await axios.post(`${API_URL}/upload`, formData, {
+        headers: {
+          "Content-Type": "multipart/form-data",
+        },
+      });
+  
+    
+      return response;
+    } catch (error) {
+      console.error("Error uploading file:", error);
+      alert("Failed to upload file.");
+    }
+  };
 

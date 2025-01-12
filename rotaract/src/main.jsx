@@ -5,17 +5,18 @@ import App from "./App.jsx";
 import { ScreenContextProvider } from "./contexts/ScreenContext.jsx";
 import { DataContextProvider } from "./contexts/MainDataContext.jsx";
 import { AuthProvider } from "./contexts/AuthContext.jsx";
+import { PopUpProvider } from "./contexts/PopUpContext.jsx";
 
 createRoot(document.getElementById("root")).render(
   <StrictMode>
-    <AuthProvider>
-    <DataContextProvider>
-      
-        <ScreenContextProvider>
-          <App />
-        </ScreenContextProvider>
-     
-    </DataContextProvider>
-    </AuthProvider>
+    <PopUpProvider>
+      <AuthProvider>
+        <DataContextProvider>
+          <ScreenContextProvider>
+            <App />
+          </ScreenContextProvider>
+        </DataContextProvider>
+      </AuthProvider>
+    </PopUpProvider>
   </StrictMode>
 );

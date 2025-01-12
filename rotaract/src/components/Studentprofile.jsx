@@ -1,26 +1,74 @@
 import React, { useState, useEffect } from "react";
-import { updateStudentRecord } from "../../api/api_services"; // Assuming a function for updating the profile in your API
+import { getStudentRecord, updateStudentRecord } from "../../api/api_services"; // Assuming a function for updating the profile in your API
 import SearchableDropdown from "./SearchableDropDown";
 import { useDataContext } from "../contexts/MainDataContext";
 import { Edit2, Save, X } from "lucide-react";
+import { usePopUp } from "../contexts/PopUpContext";
+import { useAuthContext } from "../contexts/AuthContext";
 
 export default function StudentProfile({ studentData }) {
-  console.log("studentData : ", studentData);
+  const [student, setStudent] = useState(null);
+  const { showPopUp } = usePopUp();
+  const { capitalize } = useDataContext();
 
   const [formData, setFormData] = useState({
-    id: studentData?.id || "",
-    roll_no: studentData?.roll_no || "",
-    name: studentData?.name || "",
-    email: studentData?.email || "",
-    gender: studentData?.gender || "",
-    dept: studentData?.dept || "",
-    startYear: studentData?.startYear || "",
-    endYear: studentData?.endYear || "",
-    mobileNo: studentData?.mobileNo || "",
+    id: student?.id || "",
+    roll_no: student?.roll_no || "",
+    name: student?.name || "",
+    email: student?.email || "",
+    gender: student?.gender || "",
+    dept: student?.dept || "",
+    startYear: student?.startYear || "",
+    endYear: student?.endYear || "",
+    mobileNo: student?.mobileNo || "",
   });
   const [isEditing, setIsEditing] = useState(false);
   const [invalidFields, setInvalidFields] = useState([]);
-  const { deptOptions, startYearOptions, endYearOptions, loading, setLoading } = useDataContext();
+  const { deptOptions, startYearOptions, endYearOptions, loading, setLoading } =
+    useDataContext();
+
+  const fetchStudentData = async () => {
+    console.log("fetchStudentData called");
+    setLoading(true);
+    console.log("Loading state set to true");
+    console.log("student : ", studentData);
+
+    try {
+      console.log(`Fetching student record for ID: ${studentData.id}`);
+      const res = await getStudentRecord(studentData.id);
+      console.log("Student record fetched successfully:", res);
+      setStudent(res);
+      console.log("Student data updated:", res);
+    } catch (err) {
+      console.error("Error fetching student record:", err);
+      alert("Error: " + err.message);
+    } finally {
+      setLoading(false);
+      console.log("Loading state set to false");
+    }
+  };
+
+  useEffect(() => {
+    if (studentData && studentData.id) {
+      fetchStudentData();
+    }
+  }, [studentData]);
+
+  useEffect(() => {
+    if (student) {
+      setFormData({
+        id: student.id || "",
+        roll_no: student.roll_no || "",
+        name: student.name || "",
+        email: student.email || "",
+        gender: student.gender || "",
+        dept: student.dept || "",
+        startYear: student.startYear || "",
+        endYear: student.endYear || "",
+        mobileNo: student.mobileNo || "",
+      });
+    }
+  }, [student]);
 
   // Handle form data changes
   const handleChange = (e) => {
@@ -34,7 +82,6 @@ export default function StudentProfile({ studentData }) {
   const validateForm = () => {
     let invalid = [];
 
-    // Validate fields for exact match from options
     if (!deptOptions.includes(formData.dept)) {
       invalid.push("dept");
     }
@@ -51,29 +98,44 @@ export default function StudentProfile({ studentData }) {
     return invalid;
   };
 
+  const startEditing = () => {
+    setFormData(student);
+    setIsEditing(true);
+  };
+
+  const cancelEditing = () => {
+    setFormData(student);
+    setIsEditing(false);
+    setInvalidFields([]);
+  };
+
   // Handle form submission
   const handleSubmit = async (e) => {
     e.preventDefault();
 
     const invalid = validateForm();
-    setInvalidFields(invalid); 
+    setInvalidFields(invalid);
 
-    if (invalid.length > 0) return; 
+    if (invalid.length > 0) return;
 
     setLoading(true);
     try {
-      const res = await updateStudentRecord(formData); 
-      console.log("Response from API:", res);
-      alert("Profile updated successfully!");
+      const res = await updateStudentRecord(formData);
+      console.log("respose:", res);
+      showPopUp("Profile updated successfully", "success");
       setIsEditing(false);
+      await fetchStudentData();
     } catch (err) {
       console.error("Error during update:", err);
       alert("Error: " + err);
+    }finally{
+      setLoading(false);
+      setFormData(student);
     }
-    setLoading(false);
+    
   };
 
-  return (
+  return student ? (
     <div className="flex justify-center items-center bg-white p-6">
       <div className="bg-white  rounded-lg max-w-4xl w-full">
         {/* Profile Header */}
@@ -81,16 +143,20 @@ export default function StudentProfile({ studentData }) {
           <div className="flex-shrink-0">
             <img
               className="w-16 h-16 md:w-24 md:h-24 rounded-full border-4 border-white"
-              src="https://api.dicebear.com/9.x/bottts/svg"
+              src={`${
+                formData.gender.toLowerCase() === "female"
+                  ? "/student_profile_female.png"
+                  : "/student_profile_male.png"
+              }`}
               alt="avatar"
             />
           </div>
           <div className="ml-6 text-white">
             <h2 className="text-base md:text-2xl font-semibold">
-              {formData.name}
+              {capitalize(student.name)}
             </h2>
-            <p className="text-sm mt-1">{formData.dept || "Department"}</p>
-            <p className="text-sm mt-1">Batch : {formData.startYear}</p>
+            <p className="text-sm mt-1">{student.dept || "Department"}</p>
+            <p className="text-sm mt-1">Batch : {student.startYear}</p>
           </div>
 
           <div className="absolute right-4 top-4 rounded-full z-50">
@@ -108,7 +174,7 @@ export default function StudentProfile({ studentData }) {
                   <X
                     size={20}
                     className="text-white group-hover:text-green-800 font-semibold"
-                    onClick={() => setIsEditing(false)}
+                    onClick={cancelEditing}
                   />
                 </div>
               </div>
@@ -117,7 +183,7 @@ export default function StudentProfile({ studentData }) {
                 <Edit2
                   size={20}
                   className="text-white group-hover:text-green-800 font-semibold"
-                  onClick={() => setIsEditing(true)}
+                  onClick={startEditing}
                 />
               </div>
             )}
@@ -132,6 +198,26 @@ export default function StudentProfile({ studentData }) {
                 <h3 className="text-lg font-semibold text-gray-900">
                   Personal Information
                 </h3>
+                <div className="flex flex-col justify-start gap-2">
+                  <label className="font-medium text-gray-900" htmlFor="email">
+                    Name:
+                  </label>
+                  <input
+                    type="text"
+                    id="name"
+                    name="name"
+                    value={formData.name}
+                    onChange={handleChange}
+                    disabled={!isEditing}
+                    className={` text-gray-600 w-full ${
+                      isEditing
+                        ? "px-3 py-2 border focus:outline-none focus:ring-2 focus:ring-green-700"
+                        : "border-none"
+                    } ${
+                      invalidFields.includes("name") ? "border-red-500" : ""
+                    } rounded-lg`}
+                  />
+                </div>
                 <div className="flex flex-col justify-start gap-2">
                   <label className="font-medium text-gray-900" htmlFor="email">
                     Email:
@@ -211,6 +297,27 @@ export default function StudentProfile({ studentData }) {
                   Academic Information
                 </h3>
                 <div className="flex flex-col justify-start gap-2">
+                  <label className="font-medium text-gray-900" htmlFor="email">
+                    Roll No:
+                  </label>
+                  <input
+                    type="text"
+                    id="roll_no"
+                    name="roll_no"
+                    value={formData.roll_no}
+                    onChange={handleChange}
+                    disabled={!isEditing}
+                    className={` text-gray-600 w-full ${
+                      isEditing
+                        ? "px-3 py-2 border focus:outline-none focus:ring-2 focus:ring-green-700"
+                        : "border-none"
+                    } ${
+                      invalidFields.includes("roll_no") ? "border-red-500" : ""
+                    } rounded-lg`}
+                  />
+                </div>
+
+                <div className="flex flex-col justify-start gap-2">
                   <label className="font-medium text-gray-900" htmlFor="dept">
                     Department:
                   </label>
@@ -237,6 +344,7 @@ export default function StudentProfile({ studentData }) {
                     <p className="text-gray-600 ">{formData.dept}</p>
                   )}
                 </div>
+
                 <div className="flex flex-col justify-start gap-2">
                   <label
                     className="font-medium text-gray-900"
@@ -270,6 +378,7 @@ export default function StudentProfile({ studentData }) {
                     <p className="text-gray-600"> {formData.startYear}</p>
                   )}
                 </div>
+
                 <div className="flex flex-col justify-start gap-2">
                   <label
                     className="font-medium text-gray-900"
@@ -307,6 +416,10 @@ export default function StudentProfile({ studentData }) {
           </form>
         </div>
       </div>
+    </div>
+  ) : (
+    <div className="flex justify-center items-center pt-8">
+      <div className="w-[800px] h-[450px] bg-gray-300 rounded-lg animate-pulse flex justify-center items-center"></div>
     </div>
   );
 }

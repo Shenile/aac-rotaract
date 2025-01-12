@@ -7,14 +7,6 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
-# user = os.getenv('user')
-# password = os.getenv('password')
-# host = os.getenv('host')
-# port = int(os.getenv('port'))
-# dbname = os.getenv('dbname')
-
-# db_url = f"postgresql://{user}:{password}@{host}:{port}/{dbname}"
-
 db_url = os.getenv('db_url')
 engine = create_engine(db_url)
 session_local = sessionmaker(autocommit = False, autoflush = False, bind=engine)

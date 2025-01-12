@@ -25,6 +25,18 @@ export const AuthProvider = ({ children }) => {
     }
   }, []);
 
+  // update user data
+  const updateUserData = (field, value) => {
+    console.log('I am Triggered..., ');
+    console.log('Field : ', field, ' Value : ', value);
+    setUser((prevData)=>({
+      ...prevData, 
+      [field] : value
+    }));
+
+    console.log('user value after updation : ', user);
+  }
+
   // Login function
   const adminlogin = async (logindata) => {
     console.log("Attempting to login with data:", logindata);
@@ -80,7 +92,7 @@ export const AuthProvider = ({ children }) => {
   };
 
   return (
-    <AuthContext.Provider value={{ user, adminlogin, studentlogin, logout }}>
+    <AuthContext.Provider value={{ user, adminlogin, studentlogin, logout, updateUserData }}>
       {children}
     </AuthContext.Provider>
   );

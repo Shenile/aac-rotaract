@@ -7,17 +7,27 @@ import {
   Printer,
   BookOpen,
   Pen,
+  GraduationCap,
+  Icon,
+  UserPlus2,
+  LucideFileUp,
+  Trash2,
 } from "lucide-react";
 
 import AdminLogin from "./AdminLogin";
 import { useScreenContext } from "../contexts/ScreenContext";
 import {
+  deleteAllStudents,
   deleteStudentRecord,
   getStudentRecords,
+  registerStudent,
   updateStudentRecord,
 } from "../../api/api_services";
 import { useDataContext } from "../contexts/MainDataContext";
 import SearchableDropdown from "./SearchableDropDown";
+import FileUpload from "./FileUpload";
+import { usePopUp } from "../contexts/PopUpContext";
+import { getValidationErrors } from "../validation";
 
 const filterDataBySearch = (data, query) => {
   if (!query) return data;
@@ -29,8 +39,54 @@ const filterDataBySearch = (data, query) => {
   });
 };
 
+const Headers = [
+  "RollNo",
+  "Name",
+  "Email",
+  "Gender",
+  "Department",
+  "Start Year",
+  "End Year",
+  "Mobile.No",
+];
+
+function DeleteAllConfirmationModel({deleteAll, setDeleteAllModel}) {
+    return (
+      <div className="fixed inset-0 bg-gray-900 bg-opacity-20 flex justify-center items-center z-40">
+          <div className="bg-white rounded-lg shadow-lg w-96 p-6">
+            <h2 className="text-lg font-bold text-yellow-600">⚠️ Warning</h2>
+            <p className="mt-4 text-gray-800">
+              You are about to delete{" "}
+              <span className="font-semibold">all records</span> from the
+              database. This action is{" "}
+              <span className="text-red-600 font-semibold">irreversible</span>,
+              and all data will be permanently lost.
+            </p>
+            <p className="mt-4 text-sm text-gray-600">
+              Please confirm to proceed or cancel to abort.
+            </p>
+
+            <div className="mt-8 flex justify-end space-x-4 text-sm">
+              <button
+                onClick={() => setDeleteAllModel(false)}
+                className="px-4 py-2 bg-gray-200 text-gray-800 rounded-lg hover:bg-gray-300"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={deleteAll}
+                className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700"
+              >
+                Delete All Records
+              </button>
+            </div>
+          </div>
+        </div>
+    )
+}
+
 export default function Records() {
-  const [headers, setHeaders] = useState([]);
+  const [headers, setHeaders] = useState(Headers);
   const { isMobile, isDesktop, isMidScreen, isTablet } = useScreenContext();
   const [studentData, setStudentsData] = useState([]);
   const [displayData, setDisplayData] = useState([]);
@@ -39,10 +95,17 @@ export default function Records() {
   const [readMode, setReadMode] = useState(true);
   const [editingRowIndex, setEditingRowIndex] = useState(null);
   const [editedData, setEditedData] = useState({});
-  const { deptOptions, startYearOptions, loading, setLoading } = useDataContext();
+  const { deptOptions, startYearOptions, endYearOptions, loading, setLoading } =
+    useDataContext();
+  const [createNewRecord, setCreateNewRecord] = useState(false);
+  const [openFileModal, setOpenFileModal] = useState(false);
+  const [deleteAllModel, setDeleteAllModel] = useState(true);
+  const { showPopUp } = usePopUp();
+  const [validationErrors, setValidationErrors] = useState({});
 
   // Fetch student records
   const fetchStudentsData = async () => {
+    await cleanUp();
     setLoading(true);
     try {
       const data = await getStudentRecords();
@@ -55,40 +118,65 @@ export default function Records() {
     }
   };
 
-
+  // clean up's when page reloads
+  const cleanUp = () => {
+    setCreateNewRecord(false);
+    setEditingRowIndex(null);
+    setEditedData(null);
+    setValidationErrors({});
+    setOpenFileModal(false);
+    setDeleteAllModel(false);
+  };
 
   // Trigger data fetch when component mounts
   useEffect(() => {
     fetchStudentsData();
+    setHeaders(Headers);
+    cleanUp();
   }, []);
 
+  useEffect(() => {
+    if (readMode) cancelEdit();
+    if (!createNewRecord) setEditingRowIndex(null);
+  }, [readMode, createNewRecord]);
 
   useEffect(() => {
     if (readMode) {
       cancelEdit();
     }
-  }, [readMode]);
+
+    if (!createNewRecord) {
+      setEditingRowIndex(null);
+    }
+  }, [readMode, createNewRecord]);
 
   // Adjust headers based on screen size
-  useEffect(() => {
-    if (isMobile) {
-      setHeaders(["user"]);
-    } else if (isMidScreen) {
-      setHeaders(["User", "Role", ""]);
-    } else if (isTablet) {
-      setHeaders(["User", "Role", "Status", ""]);
-    } else if (isDesktop) {
-      setHeaders([
-        "RollNo",
-        "Name",
-        "Email",
-        "Gender",
-        "Department",
-        "Batch",
-        "Mobile.No",
-      ]);
-    }
-  }, [isMobile, isTablet, isDesktop, isMidScreen]);
+  // useEffect(() => {
+  //   if (isMobile) {
+  //     setHeaders(["user"]);
+  //   } else if (isMidScreen) {
+  //     setHeaders(["User", "Role", ""]);
+  //   } else if (isTablet) {
+  //     setHeaders(["User", "Role", "Status", ""]);
+  //   } else if (isDesktop) {
+  //     setHeaders([
+  //       "RollNo",
+  //       "Name",
+  //       "Email",
+  //       "Gender",
+  //       "Department",
+  //       "Batch",
+  //       "Mobile.No",
+  //     ]);
+  //   }
+
+  // }, [
+  //   isMobile,
+  //   isTablet,
+  //   isDesktop,
+  //   isMidScreen,
+
+  // ]);
 
   // Handle search input change
   const handleSearchChange = (e) => {
@@ -156,29 +244,42 @@ export default function Records() {
     }
   };
 
-  const startEdit = (index, student) => {
+  const startEdit = async (index, student) => {
+    await cleanUp();
     setEditingRowIndex(index);
     setEditedData(student);
   };
 
   const cancelEdit = () => {
-    setEditingRowIndex(null);
-    setEditedData({});
+    cleanUp();
   };
 
   const saveRow = async () => {
-    setLoading(true);
-    try {
-      if (editedData) {
-        const res = await updateStudentRecord(editedData);
-        cancelEdit();
-        fetchStudentsData();
-        console.log("response ", res);
+    const errors = await getValidationErrors(
+      editedData,
+      deptOptions,
+      startYearOptions,
+      endYearOptions
+    );
+    console.log("founded errors : ", errors);
+    if (errors) {
+      setValidationErrors(errors);
+    } else {
+      setValidationErrors({});
+      setLoading(true);
+      try {
+        if (editedData) {
+          const res = await updateStudentRecord(editedData);
+          cancelEdit();
+          fetchStudentsData();
+          console.log("response ", res);
+        }
+      } catch (err) {
+        console.error("error : something wrong happened", err);
+      } finally {
+        setLoading(false);
+        cleanUp();
       }
-    } catch (err) {
-      console.error("error : something wrong happened", err);
-    } finally {
-      setLoading(false);
     }
   };
 
@@ -187,147 +288,322 @@ export default function Records() {
     try {
       const res = await deleteStudentRecord(id);
       fetchStudentsData();
-      alert(res);
+      showPopUp("deleted successfully", "success");
     } catch (err) {
       alert("err :", err);
     } finally {
       setLoading(false);
+      cleanUp();
     }
   };
 
-  const renderRow = (student, idx) => (
-    <tr key={student.roll_no} className="hover:bg-gray-100">
-      {Object.entries(student).map(([key, value]) => {
-        if (idx === editingRowIndex && key !== "id" && key !== "endYear") {
-          return (
-            <td
-              key={`${student.roll_no}-${key}`}
-              className="p-2 px-4 text-gray-800"
-            >
-              {(() => {
-                switch (key) {
-                  case "gender":
-                    return (
-                      <SearchableDropdown
-                        options={["Male", "Female", "Other"]}
-                        intialValue={student.gender}
-                        onChange={(value) =>
-                          setEditedData((prev) => ({
-                            ...prev,
-                            [key]: value, // Use the value selected from the dropdown
-                          }))
-                        }
-                      />
-                    );
+  // adding a student
+  const addNewData = () => {
+    if (editingRowIndex !== null || createNewRecord) {
+      alert("Complete or cancel current action before adding a new record.");
+      return;
+    }
+    setCreateNewRecord(true);
+    const emptyRecord = {
+      roll_no: "",
+      name: "",
+      email: "",
+      gender: "",
+      dept: "",
+      startYear: "",
+      endYear: "",
+      mobileNo: "",
+    };
+    setDisplayData((prev) => [emptyRecord, ...prev]);
+    setEditingRowIndex(0);
+    setEditedData(emptyRecord);
+  };
 
-                  case "dept":
-                    return (
-                      <SearchableDropdown
-                        options={deptOptions}
-                        intialValue={student.dept}
-                        onChange={(value) =>
-                          setEditedData((prev) => ({
-                            ...prev,
-                            [key]: value, // Use the value selected from the dropdown
-                          }))
-                        }
-                      />
-                    );
+  const handleAddData = async () => {
+    if (!editedData || Object.values(editedData).some((val) => val === "")) {
+      console.log(editedData);
+      alert("All fields must be filled before saving.");
+      return;
+    }
 
-                  case "startYear":
-                    return (
-                      <SearchableDropdown
-                        options={startYearOptions}
-                        intialValue={student.startYear}
-                        onChange={(value) => {
-                          value.parseInt();
-                          setEditedData((prev) => ({
-                            ...prev,
-                            [key]: value, // Use the value selected from the dropdown
-                          }));
-                        }}
-                      />
-                    );
+    const errors = await getValidationErrors(
+      editedData,
+      deptOptions,
+      startYearOptions,
+      endYearOptions
+    );
 
-                  default:
-                    return (
-                      <input
-                        type="text"
-                        value={
-                          editedData[key] !== undefined
-                            ? editedData[key]
-                            : value
-                        }
-                        onChange={(e) =>
-                          setEditedData((prev) => ({
-                            ...prev,
-                            [key]: e.target.value,
-                          }))
-                        }
-                        className="border rounded p-1 w-full"
-                      />
-                    );
-                }
-              })()}
-            </td>
-          );
-        } else if (key !== "id" && key !== "endYear") {
-          // Render normal cells for non-editable rows
-          return (
-            <td
-              key={`${student.roll_no}-${key}`}
-              className="p-2 px-4 text-gray-800"
-            >
-              {value}
-            </td>
-          );
-        }
-        return null; // Skip rendering for keys like "id" and "endYear"
-      })}
+    if (errors) {
+      setValidationErrors(errors);
+    } else {
+      setValidationErrors({});
+      setLoading(true);
+      try {
+        await registerStudent(editedData);
+        await fetchStudentsData();
+        cancelEdit();
+        setCreateNewRecord(false);
+        showPopUp("Student record created successfully", "success");
+      } catch (err) {
+        alert("Error adding new record: " + err.errors);
+      } finally {
+        setLoading(false);
+        cleanUp();
+      }
+    }
+  };
 
-      {!readMode && (
-        <td className="print:hidden pr-4">
-          <div className="flex gap-2">
-            {idx === editingRowIndex ? (
-              <>
-                <button
-                  type="button"
-                  className="pr-3 text-green-500"
-                  onClick={() => saveRow(idx)}
-                >
-                  Save
-                </button>
-                <button
-                  type="button"
-                  className="text-gray-500"
-                  onClick={() => cancelEdit()}
-                >
-                  Cancel
-                </button>
-              </>
-            ) : (
-              <>
-                <button
-                  type="button"
-                  className="pr-3 text-blue-500"
-                  onClick={() => startEdit(idx, student)}
-                >
-                  Edit
-                </button>
-                <button
-                  type="button"
-                  className="text-red-500"
-                  onClick={() => deleteRow(student.id)}
-                >
-                  Delete
-                </button>
-              </>
+  // deleting all records
+  const deleteAll = async () => {
+
+    setLoading(true);
+    try{
+      const res = await deleteAllStudents();
+      await fetchStudentsData();
+      showPopUp("Deleted Successfully", "success");
+    }catch(err){
+      showPopUp(`Error : ${err}`, "error");
+    }finally{
+      setLoading(false);
+    }
+  };
+
+
+  const renderRow = (student, idx) => {
+    const isEditing = idx === editingRowIndex;
+    const commonDropdownProps = (key, options, intialValue) => ({
+      options,
+      intialValue: intialValue,
+      onChange: (value) =>
+        setEditedData((prev) => ({
+          ...prev,
+          [key]:
+            key === "startYear" || key === "endYear"
+              ? parseInt(value, 10) || ""
+              : value,
+        })),
+    });
+
+    // OLD WORKING CODE
+    // const renderCellContent = (key, value) => {
+    //   switch (key) {
+    //     case "gender":
+    //       return (
+    //         <SearchableDropdown
+    //           {...commonDropdownProps(key, ["Male", "Female", "Other"], value)}
+    //         />
+    //       );
+    //     case "dept":
+    //       return (
+    //         <SearchableDropdown
+    //           {...commonDropdownProps(key, deptOptions, value)}
+    //         />
+    //       );
+    //     case "startYear":
+    //       return (
+    //         <SearchableDropdown
+    //           {...commonDropdownProps(key, startYearOptions, value)}
+    //         />
+    //       );
+    //     case "endYear":
+    //       return (
+    //         <SearchableDropdown
+    //           {...commonDropdownProps(key, endYearOptions, value)}
+    //         />
+    //       );
+    //     default:
+    //       return (
+    //         <input
+    //           type="text"
+    //           value={editedData[key] !== undefined ? editedData[key] : value}
+    //           onChange={(e) =>
+    //             setEditedData((prev) => ({
+    //               ...prev,
+    //               [key]: e.target.value,
+    //             }))
+    //           }
+    //           className="border focus:border-2 focus:outline-none focus:border-green-700 rounded p-1 w-full"
+    //         />
+    //       );
+    //   }
+    // };
+
+    const renderCellContent = (key, value) => {
+      const error = validationErrors[key] || "";
+
+      const isDropdown = ["gender", "dept", "startYear", "endYear"].includes(
+        key
+      );
+
+      if (isDropdown) {
+        const options =
+          key === "gender"
+            ? ["Male", "Female", "Other"]
+            : key === "dept"
+            ? deptOptions
+            : key === "startYear"
+            ? startYearOptions
+            : endYearOptions;
+
+        return (
+          <div>
+            <SearchableDropdown {...commonDropdownProps(key, options, value)} />
+            {error && (
+              <p className="text-red-500 text-xs mt-1 font-light">{error}</p>
             )}
           </div>
+        );
+      }
+
+      return (
+        <div>
+          <input
+            type="text"
+            value={editedData[key] !== undefined ? editedData[key] : value}
+            onChange={(e) =>
+              setEditedData((prev) => ({
+                ...prev,
+                [key]: e.target.value,
+              }))
+            }
+            className="border focus:border-2 focus:outline-none focus:border-green-700 rounded p-1 w-full "
+          />
+          {error && (
+            <p className="text-red-500 text-xs mt-1 font-light">{error}</p>
+          )}
+        </div>
+      );
+    };
+
+    // OLD WORKING CODE
+    // const renderCell = (key, value) => {
+    //   if (key === "id") return null; // Skip rendering for specific keys
+    //   if (isEditing) {
+    //     return (
+    //       <td
+    //         key={`${student.roll_no}-${key}`}
+    //         className="p-2 px-4 text-gray-800"
+    //       >
+    //         {renderCellContent(key, value)}
+    //       </td>
+    //     );
+    //   }
+    //   return (
+    //     <td
+    //       key={`${student.roll_no}-${key}`}
+    //       className="p-2 px-4 text-gray-800"
+    //     >
+    //       {value}
+    //     </td>
+    //   );
+    // };
+
+    const renderCell = (key, value) => {
+      if (key === "id") return null; // Skip rendering for specific keys
+      if (isEditing) {
+        return (
+          <td
+            key={`${student.roll_no}-${key}`}
+            className="p-2 px-4 text-gray-800 h-fit "
+          >
+            {renderCellContent(key, value)}
+          </td>
+        );
+      }
+      return (
+        <td
+          key={`${student.roll_no}-${key}`}
+          className="p-2 px-4 text-gray-800"
+        >
+          {value}
         </td>
-      )}
-    </tr>
-  );
+      );
+    };
+
+    const renderActionButtons = () => {
+      if (isEditing && createNewRecord) {
+        return (
+          <>
+            <button
+              type="button"
+              className="pr-3 text-green-500"
+              onClick={() => handleAddData(editedData)}
+              disabled={loading}
+            >
+              Add
+            </button>
+            <button
+              type="button"
+              className="text-gray-500"
+              onClick={() => {
+                setDisplayData((prevData) => prevData.slice(1));
+                setCreateNewRecord(false);
+                cancelEdit();
+              }}
+              disabled={loading}
+            >
+              Discard
+            </button>
+          </>
+        );
+      }
+      if (isEditing && !createNewRecord) {
+        return (
+          <>
+            <button
+              type="button"
+              className="pr-3 text-green-700"
+              onClick={() => saveRow(idx)}
+              disabled={loading}
+            >
+              Save
+            </button>
+            <button
+              type="button"
+              className="text-gray-700"
+              onClick={() => cancelEdit()}
+              disabled={loading}
+            >
+              Cancel
+            </button>
+          </>
+        );
+      }
+
+      return (
+        <>
+          <button
+            type="button"
+            className="pr-3 text-blue-700"
+            onClick={() => startEdit(idx, student)}
+            disabled={loading}
+          >
+            Edit
+          </button>
+          <button
+            type="button"
+            className="text-red-700"
+            onClick={() => deleteRow(student.id)}
+            disabled={loading}
+          >
+            Delete
+          </button>
+        </>
+      );
+    };
+
+    return (
+      <tr key={student.roll_no} className={`hover:bg-gray-100 hover:border hover:border-gray-300 hover:shadow-md
+      ${isEditing && 'border border-gray-300 bg-gray-100 shadow-md'}`}>
+        {Object.entries(student).map(([key, value]) => renderCell(key, value))}
+        {!readMode && (
+          <td className="print:hidden pr-4">
+            <div className="flex gap-2">{renderActionButtons()}</div>
+          </td>
+        )}
+      </tr>
+    );
+  };
 
   return (
     <div>
@@ -343,6 +619,11 @@ export default function Records() {
           readMode={readMode}
           setReadMode={setReadMode}
           loading={loading}
+          addNewData={addNewData}
+          setOpenFileModal={setOpenFileModal}
+          openFileModal={openFileModal}
+          deleteAllModel={deleteAllModel}
+          setDeleteAllModel={setDeleteAllModel}
         />
 
         <RecordsTable
@@ -354,6 +635,19 @@ export default function Records() {
           loading={loading}
         />
       </div>
+      {openFileModal && (
+        <div className="fixed inset-0 bg-gray-900 bg-opacity-20 flex justify-center items-center z-40">
+          <FileUpload
+            openFileModal={openFileModal}
+            setOpenFileModal={setOpenFileModal}
+            fetchStudentsData={fetchStudentsData}
+          />
+        </div>
+      )}
+
+      {deleteAllModel && (
+        <DeleteAllConfirmationModel deleteAll={deleteAll} setDeleteAllModel={setDeleteAllModel} />
+      )}
     </div>
   );
 }
@@ -369,6 +663,11 @@ function RecordTableNavBar({
   readMode,
   setReadMode,
   loading,
+  addNewData,
+  setOpenFileModal,
+  openFileModal,
+  setDeleteAllModel,
+  deleteAllModel,
 }) {
   const [openToolBar, setToolBar] = useState(false);
   const toolBarRef = useRef(null);
@@ -481,10 +780,8 @@ function RecordTableNavBar({
     setDisplayData(studentData);
   };
 
-  // adding a student
-
   return (
-    <div className="text-sm sticky top-0 bg-white flex justify-between items-start h-fit p-4">
+    <div className="text-sm sticky top-0 bg-white flex justify-between items-start h-fit p-4 w-full">
       <div className="h-fit flex gap-2 items-center">
         <button
           onClick={() => {
@@ -698,10 +995,11 @@ function RecordTableNavBar({
           {readMode ? (
             <BookOpen size={16} className="text-blue-500" />
           ) : (
-            <Pen size={20} className="text-orange-500" />
+            <Pen size={16} className="text-orange-700" />
           )}
           <p>{readMode ? "Read" : "Write"}</p>
         </button>
+
         <button
           onClick={handlePrint}
           className={`relative flex gap-2 items-center px-3 py-2 rounded-full group 
@@ -719,12 +1017,60 @@ function RecordTableNavBar({
           {!readMode && (
             <p
               className="p-0 py-1 bg-gray-200 bg-opacity-100 text-xs absolute top-11 right-1/4 invisible 
-          group-hover:visible border border-gray-300 shadow-xl rounded-full min-w-[250px]"
+          group-hover:visible border border-gray-400 shadow-md rounded-full min-w-[250px]"
             >
               printing is not supported in edit mode.
             </p>
           )}
         </button>
+
+        {!readMode && (
+          <button
+            type="button"
+            className="group relative flex gap-1 items-center px-2 py-2 rounded-full  hover:bg-gray-300 hover:border hover:border-gray-400"
+            onClick={addNewData}
+          >
+            <UserPlus2 size={20} className="text-gray-700" />
+            <p
+              className="absolute top-12 right-1 border border-gray-400 shadow-md bg-gray-200 rounded-full 
+            w-24 px-0 py-1 text-xs invisible group-hover:visible"
+            >
+              Add student
+            </p>
+          </button>
+        )}
+
+        {!readMode && (
+          <button
+            type="button"
+            onClick={() => setOpenFileModal(!openFileModal)}
+            className="group relative flex items-center gap-1 px-2 py-2 rounded-full  hover:bg-gray-300 hover:border hover:border-gray-400"
+          >
+            <LucideFileUp size={20} className="text-gray-700" />
+            <p
+              className="absolute top-12 right-1 border border-gray-400 shadow-md bg-gray-200 rounded-full 
+            w-24 px-0 py-1 text-xs invisible group-hover:visible"
+            >
+              Upload file
+            </p>
+          </button>
+        )}
+
+        {!readMode && (
+          <button
+            type="button"
+            onClick={() => setDeleteAllModel(!deleteAllModel)}
+            className="group relative flex items-center gap-1 px-2 py-2 rounded-full  hover:bg-gray-300 hover:border hover:border-gray-400"
+          >
+            <Trash2 size={20} className="text-gray-700" />
+            <p
+              className="absolute top-12 right-1 border border-gray-400 shadow-md bg-gray-200 rounded-full 
+          w-32 px-0 py-1 text-xs invisible group-hover:visible"
+            >
+              delete all records
+            </p>
+          </button>
+        )}
       </div>
     </div>
   );
@@ -753,9 +1099,9 @@ function RecordsTable({
           ))}
         </thead>
         <tbody className="text-sm">
-          {displayData && displayData.length > 0  ? (
+          {displayData && displayData.length > 0 ? (
             displayData.map((student, idx) => renderRow(student, idx)) // Correctly pass `index` here
-          ) :(
+          ) : (
             <tr>
               <td
                 colSpan={headers.length}

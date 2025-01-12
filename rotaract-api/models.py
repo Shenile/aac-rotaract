@@ -1,20 +1,23 @@
 from sqlalchemy import Column, Integer, String
-from db import Base
+from sqlalchemy.ext.declarative import declarative_base
 
+Base = declarative_base()
 
 class Rotaract_Students(Base):
-    __tablename__ = "Rotaract_Students"
+    __tablename__ = "rotaract_students"
 
-
-    id = Column(Integer, primary_key=True, index=True)
-    roll_no = Column(String, unique=True, index=True)
-    name = Column(String, index=True)
-    email = Column(String, unique=True, index=True)
-    gender = Column(String)
-    dept = Column(String)
-    startYear = Column(Integer)
-    endYear = Column(Integer)
-    mobileNo = Column(String)
+    id = Column(Integer, primary_key=True, index=True, autoincrement=True)
+    roll_no = Column(String(50), unique=True, nullable=False, index=True)
+    name = Column(String(50), index=True)
+    email = Column(String(150), unique=True, nullable=False, index=True)
+    gender = Column(String(10))
+    dept = Column(String(100))
+    startYear = Column(Integer, nullable=False)
+    endYear = Column(Integer, nullable=True)
+    mobileNo = Column(String(15), nullable=True)
 
     def __repr__(self):
-        return f"<Rotaract_Students(id={self.id}, roll_no={self.roll_no}, name={self.name}, email={self.email})>"
+        return (
+            f"<RotaractStudents(id={self.id}, roll_no='{self.roll_no}', "
+            f"name='{self.name}', email='{self.email}')>"
+        )

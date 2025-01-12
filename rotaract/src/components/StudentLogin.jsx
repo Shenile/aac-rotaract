@@ -10,21 +10,19 @@ export default function StudentLogin() {
     password: "",
   });
   const navigate = useNavigate();
-  const { loading, setLoading} = useDataContext();
+  const { loading, setLoading } = useDataContext();
 
- 
   const handleSubmit = async (e) => {
-    e.preventDefault(); 
+    e.preventDefault();
     setLoading(true);
-    try{
-      await studentlogin(formdata); 
-      navigate('/student-profile')
-    }catch (err){
+    try {
+      await studentlogin(formdata);
+      navigate("/student-profile");
+    } catch (err) {
       alert("ERROR : ", err);
-    }finally{
+    } finally {
       setLoading(false);
     }
-    
   };
 
   // Handle input changes
@@ -37,7 +35,9 @@ export default function StudentLogin() {
 
   return (
     <div className="flex justify-center items-center w-full  pt-8 md:py-4 md:pt-0 h-fit md:h-[510px]">
-      <form onSubmit={handleSubmit}> {/* Use handleSubmit for form submission */}
+      <form onSubmit={handleSubmit}>
+        {" "}
+        {/* Use handleSubmit for form submission */}
         <div className="flex flex-col gap-2 p-6 md:p-8 md:py-8 border border-gray-300 rounded-lg shadow-lg">
           <h1 className="pb-6 text-center font-semibold text-base md:text-lg">
             Student Login
