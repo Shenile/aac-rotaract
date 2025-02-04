@@ -1,12 +1,16 @@
 import logging
+import os
+import tempfile
 from fastapi import UploadFile, File
-from fastapi import FastAPI, HTTPException, Depends
+from fastapi import FastAPI, HTTPException, Depends, Request
 from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy.orm import Session
+from fastapi.responses import StreamingResponse
 from db import get_db
 from models import Rotaract_Students
 from typing import List
 import pandas as pd
+from utils.document_generator import prepare_data
 from utils.data_preprocessing_utils import standardize_name
 from pydantic_models import StudentLoginModel, StudentBase, StudentCreate, StudentUpdate, AdminLoginModel
 
@@ -224,5 +228,44 @@ def file_upload(file: UploadFile = File(...), db: Session = Depends(get_db)):
     return {"message": "File processed and records inserted successfully."}
 
 
+@app.post("/generate-doc")
+async def generate_document(request: Request):
+    # Parse incoming JSON request data
+    request_data = await request.json()
+    print(request_data)
+
+    data = request_data.get("data", {}).get("dataset")
+    filters = request_data.get("data", {}).get("filters", None)
+
+    # Initialize filters as None by default
+    if filters:
+        # Extract the filter values, defaulting to empty strings if not provided
+        gender = filters.get("gender", "")
+        dept = filters.get("dept", "")
+        batch = filters.get("batch", "")
+        sortBy = filters.get("sortBy", "")
+
+
+        # If any filter has a non-empty value, use the filters
+        if gender or dept or batch or sortBy:
+            print("Filters are valid:", filters)
+        else:
+            # If no valid filters, reset to None
+            filters = None
+            print("No valid filters applied.")
+    else:
+        # No filters provided, setting to None
+        print("No filters provided, setting to None.")
+        filters = None
+
+    # Now, generate the PDF based on the data and filters (if any)
+    pdf_buffer = prepare_data(data, filters)
+
+    # Streaming the generated PDF as a response
+    return StreamingResponse(
+        pdf_buffer,
+        media_type="application/pdf",
+        headers={"Content-Disposition": "attachment; filename=Rotaract_Students.pdf"}
+    )
 ADMIN_NAME = 'aac-rotaract-admin'
 ADMIN_PASSWORD = 'aac-rotaract-admin'

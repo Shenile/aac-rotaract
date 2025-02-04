@@ -5,6 +5,7 @@ import { useDataContext } from "../contexts/MainDataContext";
 import { Edit2, Save, X } from "lucide-react";
 import { usePopUp } from "../contexts/PopUpContext";
 import { useAuthContext } from "../contexts/AuthContext";
+import AutoCompleteInput from "./AutoCompleteInput";
 
 export default function StudentProfile({ studentData }) {
   const [student, setStudent] = useState(null);
@@ -28,23 +29,17 @@ export default function StudentProfile({ studentData }) {
     useDataContext();
 
   const fetchStudentData = async () => {
-    console.log("fetchStudentData called");
     setLoading(true);
-    console.log("Loading state set to true");
-    console.log("student : ", studentData);
 
     try {
-      console.log(`Fetching student record for ID: ${studentData.id}`);
       const res = await getStudentRecord(studentData.id);
-      console.log("Student record fetched successfully:", res);
+
       setStudent(res);
-      console.log("Student data updated:", res);
     } catch (err) {
       console.error("Error fetching student record:", err);
       alert("Error: " + err.message);
     } finally {
       setLoading(false);
-      console.log("Loading state set to false");
     }
   };
 
@@ -82,13 +77,16 @@ export default function StudentProfile({ studentData }) {
   const validateForm = () => {
     let invalid = [];
 
+    const startYearNumber = Number(formData.startYear);
+    const endYearNumber = Number(formData.endYear);
+
     if (!deptOptions.includes(formData.dept)) {
       invalid.push("dept");
     }
-    if (!startYearOptions.includes(formData.startYear)) {
+    if (!startYearOptions.includes(startYearNumber)) {
       invalid.push("startYear");
     }
-    if (!endYearOptions.includes(formData.endYear)) {
+    if (!endYearOptions.includes(endYearNumber)) {
       invalid.push("endYear");
     }
     if (!["Male", "Female", "Other"].includes(formData.gender)) {
@@ -114,6 +112,7 @@ export default function StudentProfile({ studentData }) {
     e.preventDefault();
 
     const invalid = validateForm();
+    alert("Invalid fields: " + invalid);
     setInvalidFields(invalid);
 
     if (invalid.length > 0) return;
@@ -121,23 +120,22 @@ export default function StudentProfile({ studentData }) {
     setLoading(true);
     try {
       const res = await updateStudentRecord(formData);
-      console.log("respose:", res);
+     
       showPopUp("Profile updated successfully", "success");
       setIsEditing(false);
       await fetchStudentData();
     } catch (err) {
       console.error("Error during update:", err);
       alert("Error: " + err);
-    }finally{
+    } finally {
       setLoading(false);
       setFormData(student);
     }
-    
   };
 
   return student ? (
-    <div className="flex justify-center items-center bg-white p-6">
-      <div className="bg-white  rounded-lg max-w-4xl w-full">
+    <div className="text-sm md:text-base flex justify-center items-center bg-white p-6">
+      <div className="bg-white rounded-lg max-w-4xl w-full">
         {/* Profile Header */}
         <div className="relative flex items-center p-6 bg-green-800 rounded-lg">
           <div className="flex-shrink-0">
@@ -155,37 +153,31 @@ export default function StudentProfile({ studentData }) {
             <h2 className="text-base md:text-2xl font-semibold">
               {capitalize(student.name)}
             </h2>
-            <p className="text-sm mt-1">{student.dept || "Department"}</p>
-            <p className="text-sm mt-1">Batch : {student.startYear}</p>
+            <p className="text-sm md:text-base mt-1">{student.dept || "Department"}</p>
+            <p className="text-sm md:text-base mt-1">{student.startYear}</p>
           </div>
 
           <div className="absolute right-4 top-4 rounded-full z-50">
             {isEditing ? (
-              <div className="flex gap-2">
-                <div className="group hover:bg-white p-2 rounded-full">
-                  <Save
-                    size={20}
-                    className="text-white group-hover:text-green-800 font-semibold"
-                    onClick={handleSubmit}
-                  />
-                </div>
-
-                <div className="group hover:bg-white p-2 rounded-full">
-                  <X
-                    size={20}
-                    className="text-white group-hover:text-green-800 font-semibold"
-                    onClick={cancelEditing}
-                  />
-                </div>
-              </div>
+              <button
+                className="hover:bg-white p-2 rounded-full"
+                onClick={cancelEditing}
+              >
+                <X
+                  size={20}
+                  className="text-white hover:text-green-800 font-semibold"
+                />
+              </button>
             ) : (
-              <div className="group hover:bg-white p-2 rounded-full">
+              <button
+                className="hover:bg-white p-2 rounded-full"
+                onClick={startEditing}
+              >
                 <Edit2
                   size={20}
-                  className="text-white group-hover:text-green-800 font-semibold"
-                  onClick={startEditing}
+                  className="text-white hover:text-green-800 font-semibold"
                 />
-              </div>
+              </button>
             )}
           </div>
         </div>
@@ -195,9 +187,10 @@ export default function StudentProfile({ studentData }) {
           <form onSubmit={handleSubmit} className="space-y-6">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
               <div className="space-y-4">
-                <h3 className="text-lg font-semibold text-gray-900">
+                <h3 className="text-base md:text-lg font-semibold text-gray-900">
                   Personal Information
                 </h3>
+
                 <div className="flex flex-col justify-start gap-2">
                   <label className="font-medium text-gray-900" htmlFor="email">
                     Name:
@@ -265,35 +258,32 @@ export default function StudentProfile({ studentData }) {
                   <label className="font-medium text-gray-900" htmlFor="gender">
                     Gender:
                   </label>
+
                   {isEditing ? (
-                    <SearchableDropdown
+                    <AutoCompleteInput
                       options={["Male", "Female", "Other"]}
-                      intialValue={formData.gender}
-                      regFormStyles={`text-gray-600 w-full ${
-                        isEditing
-                          ? "px-3 py-2 border focus:outline-none focus:ring-2 focus:ring-green-700"
-                          : "border-none"
-                      } ${
-                        invalidFields.includes("gender") ? "border-red-500" : ""
-                      } rounded-lg`}
+                      value={formData.gender}
                       onChange={(value) =>
                         setFormData((prevData) => ({
                           ...prevData,
                           ["gender"]: value,
                         }))
                       }
-                      required
+                      customStyle={`text-gray-600 w-full p-2 border rounded focus:outline-none focus:ring-2 focus:ring-green-700
+                       ${
+                         invalidFields.includes("gender")
+                           ? "border-red-500"
+                           : ""
+                       } rounded-lg`}
                     />
                   ) : (
                     <p className="text-gray-600">{formData.gender}</p>
                   )}
-
-                  {console.log(formData.gender)}
                 </div>
               </div>
 
               <div className="space-y-4">
-                <h3 className="text-lg font-semibold text-gray-900">
+                <h3 className="text-base md:text-lg font-semibold text-gray-900">
                   Academic Information
                 </h3>
                 <div className="flex flex-col justify-start gap-2">
@@ -321,27 +311,24 @@ export default function StudentProfile({ studentData }) {
                   <label className="font-medium text-gray-900" htmlFor="dept">
                     Department:
                   </label>
+
                   {isEditing ? (
-                    <SearchableDropdown
+                    <AutoCompleteInput
                       options={deptOptions}
-                      intialValue={formData.dept}
-                      regFormStyles={`text-gray-600 w-full ${
-                        isEditing
-                          ? "px-3 py-2 border focus:outline-none focus:ring-2 focus:ring-green-700"
-                          : "border-none"
-                      } ${
-                        invalidFields.includes("dept") ? "border-red-500" : ""
-                      } rounded-lg`}
+                      value={formData.dept}
                       onChange={(value) =>
                         setFormData((prevData) => ({
                           ...prevData,
                           ["dept"]: value,
                         }))
                       }
-                      required
+                      customStyle={`text-gray-600 w-full p-2 border rounded focus:outline-none focus:ring-2 focus:ring-green-700
+                       ${
+                         invalidFields.includes("dept") ? "border-red-500" : ""
+                       } rounded-lg`}
                     />
                   ) : (
-                    <p className="text-gray-600 ">{formData.dept}</p>
+                    <p className="text-gray-600">{formData.dept}</p>
                   )}
                 </div>
 
@@ -354,28 +341,24 @@ export default function StudentProfile({ studentData }) {
                   </label>
 
                   {isEditing ? (
-                    <SearchableDropdown
+                    <AutoCompleteInput
                       options={startYearOptions}
-                      intialValue={formData.startYear}
-                      regFormStyles={`text-gray-700 w-full ${
-                        isEditing
-                          ? "px-3 py-2 border focus:outline-none focus:ring-2 focus:ring-green-700"
-                          : "border-none"
-                      } ${
-                        invalidFields.includes("startYear")
-                          ? "border-red-500"
-                          : ""
-                      } rounded-lg`}
+                      value={formData.startYear}
                       onChange={(value) =>
                         setFormData((prevData) => ({
                           ...prevData,
                           ["startYear"]: value,
                         }))
                       }
-                      required
+                      customStyle={`text-gray-600 w-full p-2 border rounded focus:outline-none focus:ring-2 focus:ring-green-700
+                       ${
+                         invalidFields.includes("startYear")
+                           ? "border-red-500"
+                           : ""
+                       } rounded-lg`}
                     />
                   ) : (
-                    <p className="text-gray-600"> {formData.startYear}</p>
+                    <p className="text-gray-600">{formData.startYear}</p>
                   )}
                 </div>
 
@@ -386,26 +369,23 @@ export default function StudentProfile({ studentData }) {
                   >
                     End Year:
                   </label>
+
                   {isEditing ? (
-                    <SearchableDropdown
+                    <AutoCompleteInput
                       options={endYearOptions}
-                      intialValue={formData.endYear}
-                      regFormStyles={`text-gray-700 w-full ${
-                        isEditing
-                          ? "px-3 py-2 border focus:outline-none focus:ring-2 focus:ring-green-700"
-                          : "border-none"
-                      } ${
-                        invalidFields.includes("endYear")
-                          ? "border-red-500"
-                          : ""
-                      } rounded-lg`}
+                      value={formData.endYear}
                       onChange={(value) =>
                         setFormData((prevData) => ({
                           ...prevData,
                           ["endYear"]: value,
                         }))
                       }
-                      required
+                      customStyle={`text-gray-600 w-full p-2 border rounded focus:outline-none focus:ring-2 focus:ring-green-700
+                       ${
+                         invalidFields.includes("endYear")
+                           ? "border-red-500"
+                           : ""
+                       } rounded-lg`}
                     />
                   ) : (
                     <p className="text-gray-600">{formData.endYear}</p>
@@ -415,11 +395,40 @@ export default function StudentProfile({ studentData }) {
             </div>
           </form>
         </div>
+
+        {isEditing && (
+          <div
+            className="px-8 py-2  
+            text-sm text-white flex justify-end items-center gap-4 
+            "
+          >
+            <button
+              type="button"
+              className="px-3 py-2 active:bg-red-500 rounded-full bg-red-700
+              md:px-4 md:py-3 "
+              onClick={cancelEditing}
+            >
+              Discard
+            </button>
+
+            <button
+              type="button"
+              className="px-3 py-2 rounded-full bg-green-700 active:bg-green-500
+              md:px-4 md:py-3"
+              onClick={handleSubmit}
+            >
+              Update
+            </button>
+          </div>
+        )}
       </div>
     </div>
   ) : (
     <div className="flex justify-center items-center pt-8">
-      <div className="w-[800px] h-[450px] bg-gray-300 rounded-lg animate-pulse flex justify-center items-center"></div>
+      <div
+        className="w-[800px] h-[450px] bg-gray-300 rounded-lg animate-pulse 
+      flex justify-center items-center"
+      ></div>
     </div>
   );
 }

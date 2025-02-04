@@ -39,3 +39,4 @@ class StudentLoginModel(BaseModel):
 class AdminLoginModel(BaseModel):
     name: str
     password: str
+

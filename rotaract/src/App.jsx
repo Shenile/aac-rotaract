@@ -15,20 +15,22 @@ import ProtectedRoute from "./components/ProtectedRoute";
 import { useAuthContext } from "./contexts/AuthContext";
 import Home from "./components/Home";
 import PopUp from "./components/Popup";
+import { ChevronLeft } from "lucide-react";
 
 export default function App() {
   const [openSideBar, setOpenSideBar] = useState(false);
   const { isMobile, isTablet, isDesktop, isMidScreen } = useScreenContext();
   const { user } = useAuthContext();
-  console.log(user)
+
+
+
   const closeSidebar = () => setOpenSideBar(false);
- 
-  useEffect(()=>{
-    if(isMidScreen || isDesktop){
+
+  useEffect(() => {
+    if (isMidScreen || isDesktop) {
       setOpenSideBar(false);
     }
-    
-  }, [isMobile, isTablet, isDesktop, isMidScreen])
+  }, [isMobile, isTablet, isDesktop, isMidScreen]);
 
   return (
     <Router basename="/apr24/19csc120">
@@ -38,14 +40,15 @@ export default function App() {
           <CollegeHeader />
         </div>
 
-        <h1 className="hidden md:block text-sm text-gray-900 sm:text-lg text-center font-bold w-full border-b border-gray-300 py-2 md:py-4">
+        <h1 className="hidden md:block text-sm text-gray-900 sm:text-lg text-center font-bold w-full border-b border-gray-300 py-2 md:py-4 z-30">
           ROTARACT
         </h1>
 
-        <div className="md:hidden px-8 flex justify-between items-center w-full border-b border-gray-300 py-2">
+        {/* Mobile Header with Burger Menu */}
+        <div className="md:hidden px-8 flex justify-between items-center w-full border-b border-gray-300 py-2 ">
           {/* Burger Menu */}
           <button
-            className="text-lg sm:text-xl"
+            className="text-lg sm:text-xl transition-transform duration-200 active:scale-90"
             onClick={() => setOpenSideBar(!openSideBar)}
           >
             ☰
@@ -60,37 +63,37 @@ export default function App() {
         </div>
 
         {/* Main content container */}
-        <div className="w-full flex flex-grow overflow-hidden">
+        <div className=" w-full flex flex-grow overflow-hidden">
           {/* Desktop Sidebar */}
           <div className="hidden md:block w-40 border-r border-gray-300 bg-gray-100">
             <SideBar />
           </div>
 
-          {/* Mobile Sidebar */}
-          {openSideBar && (
-            <>
-              {/* Overlay */}
-              <div
-                className="fixed inset-0 bg-black bg-opacity-50 z-40"
-                onClick={closeSidebar}
-              ></div>
+          {/* 🔹 Mobile Sidebar with Smooth Animation */}
+          <div
+            className={` rounded-lg fixed inset-y-0 left-0 w-64 bg-gray-100 border-r border-gray-300 z-50 shadow-lg
+                transform ${
+                  openSideBar ? "translate-x-0" : "-translate-x-full"
+                } 
+                transition-transform duration-300 ease-in-out`}
+          >
+            <button
+              className="text-lg p-2 absolute top-2 right-2"
+              onClick={closeSidebar}
+            >
+              <ChevronLeft size={24}/>
+            </button>
+            <div className="mt-20 h-[80%]">
+              <SideBar setOpenSideBar={setOpenSideBar} />
+            </div>
+          </div>
 
-              {/* Sidebar Content */}
-              <div
-                className="fixed inset-y-0 left-0 w-64 bg-gray-100 border-r border-gray-300 z-50 transform transition-transform translate-x-0"
-                style={{ width: "16rem" }} // Ensure consistent width
-              >
-                <button
-                  className="text-lg p-2 absolute top-2 right-2"
-                  onClick={closeSidebar}
-                >
-                  ✖
-                </button>
-                <div className="mt-24 ">
-                  <SideBar />
-                </div>
-              </div>
-            </>
+          {/* 🔹 Overlay for Clicking Outside to Close */}
+          {openSideBar && (
+            <div
+              className="fixed inset-0 bg-black bg-opacity-40 z-40"
+              onClick={closeSidebar}
+            ></div>
           )}
 
           {/* Content Area */}
@@ -102,26 +105,36 @@ export default function App() {
                   path="/student-registration"
                   element={<StudentRegistration />}
                 />
-                <Route path="/" element={<Home/>}/>
+                <Route path="/" element={<Home />} />
                 <Route path="/login" element={<Login />} />
                 <Route path="/student-login" element={<StudentLogin />} />
                 <Route path="/admin-login" element={<AdminLogin />} />
-                <Route path="/student-profile" element={
-                  <ProtectedRoute role={"student"}>
-                     <StudentProfile studentData={user.user_data?.student || {}} />
-                    </ProtectedRoute>}/>
-
+                <Route
+                  path="/student-profile"
+                  element={
+                    <ProtectedRoute role={"student"}>
+                      <StudentProfile
+                        studentData={user.user_data?.student || {}}
+                      />
+                    </ProtectedRoute>
+                  }
+                />
                 <Route path="/about" element={<About />} />
-                <Route path="/records" element={
-                  <ProtectedRoute role={"admin"}><Records /></ProtectedRoute>} />
+                <Route
+                  path="/records"
+                  element={
+                    <ProtectedRoute role={"admin"}>
+                      <Records />
+                    </ProtectedRoute>
+                  }
+                />
               </Routes>
             </div>
           </div>
         </div>
       </div>
 
-      <PopUp/>
+      <PopUp />
     </Router>
-
   );
 }

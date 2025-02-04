@@ -7,6 +7,13 @@ export const DataContext = createContext();
 export const DataContextProvider = ({ children }) => {
   const currentYear = new Date().getFullYear();
   const [loading, setLoading] = useState(false);
+  
+  const scrollToTop = () => {
+    window.scrollTo({
+      top: 0,
+      behavior: 'smooth', // Adds smooth scroll effect
+    });
+  };
 
   useEffect(() => {
     if (loading) {
@@ -39,6 +46,23 @@ export const DataContextProvider = ({ children }) => {
     3
   );
 
+  const getClickEffect = (bgColor) => {
+    
+    return {
+      position: "relative",
+      overflow: "hidden",
+      cursor: "pointer",
+      transition: "background 0.3s ease", // Smooth transition for background color
+  
+      // Apply background color change on active (click)
+      "&:active": {
+        backgroundColor: bgColor,  // Accepts hex, RGB, RGBA, HSL, etc.
+        transition: "background 0.2s ease",  // Ensuring a quick background color transition
+      },
+    };
+  };
+  
+
   const deptOptions = [
     "History",
     "Economics",
@@ -65,7 +89,9 @@ export const DataContextProvider = ({ children }) => {
         deptOptions,
         loading,
         setLoading,
-        capitalize
+        capitalize,
+        scrollToTop,
+        getClickEffect
       }}
     >
       {children}

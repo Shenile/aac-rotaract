@@ -44,7 +44,7 @@ const SearchableDropdown = ({ options, onChange, intialValue, regFormStyles = nu
   };
 
   return (
-    <div className="relative w-full " ref={dropdownRef}>
+    <div className="w-full z-30" ref={dropdownRef}>
       <input
         type="text"
         value={searchText}
