@@ -3,17 +3,15 @@ from reportlab.lib.pagesizes import A4
 from reportlab.lib import colors
 from io import BytesIO
 from reportlab.lib.styles import getSampleStyleSheet
+from openpyxl import Workbook
 
-def prepare_data(data, filters = None):
-
-    pdf_buffer = BytesIO()
-
+def process_data(data):
+    if not data:
+        return [["No data available"]]
 
     # Extract the keys (excluding 'id') and format headers
     headers = [header.replace("_", " ").title() for header in data[0].keys() if header != 'id']
     print(f'Headers : {headers}')
-
-
 
     # Extract and process student data
     processed_data = [
@@ -23,6 +21,15 @@ def prepare_data(data, filters = None):
 
     # Add headers as the first row in the table
     processed_data.insert(0, headers)
+
+    return processed_data
+
+
+def generate_pdf(data, filters = None):
+
+    processed_data = process_data(data)
+
+    pdf_buffer = BytesIO()
 
     pdf = SimpleDocTemplate(pdf_buffer, pagesize=A4,
                             leftMargin=30, rightMargin=30,
@@ -43,8 +50,8 @@ def prepare_data(data, filters = None):
         filter_details = []
         if filters.get("gender"):
             filter_details.append(f"Gender: <font color='{colors.blue}'>{filters['gender']}</font>")
-        if filters.get("department"):
-            filter_details.append(f"Department: <font color='{colors.blue}'>{filters['department']}</font>")
+        if filters.get("dept"):
+            filter_details.append(f"Department: <font color='{colors.blue}'>{filters['dept']}</font>")
         if filters.get("batch"):
             filter_details.append(f"Batch: <font color='{colors.blue}'>{filters['batch']}</font>")
         if filters.get("sortBy"):
@@ -84,4 +91,22 @@ def prepare_data(data, filters = None):
     return pdf_buffer
 
 
+def generate_xlsx(data):
+    print("I am executed")
 
+    data = process_data(data)
+    # Create a new workbook and get the active worksheet
+    wb = Workbook()
+    ws = wb.active
+
+    # Add the data to the worksheet row by row
+    for row in data:
+        ws.append(row)
+
+    # Save the workbook to a BytesIO stream
+    output = BytesIO()
+    wb.save(output)
+    output.seek(0)  # Move the cursor to the beginning of the stream
+    print(output, "i am successfully generated")
+    # Return the byte stream
+    return output

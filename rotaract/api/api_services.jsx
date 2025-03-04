@@ -17,22 +17,23 @@ export const registerStudent = async (studentData) => {
     }
 };
 
-export const generatePDF = async (data) => {
+export const generateDocument = async (data) => {
     try {
-        // Send POST request with data to generate the PDF
-        const response = await axios.post(`${API_URL}/generate-doc`, 
-            { data, type: 'pdf' }, 
-            { 
-                responseType: 'blob',  // Ensure the response is treated as a Blob (binary data)
-            }
-        );
+        console.log("📤 Sending request to backend to generate document:", data);
+        
+        const response = await axios.post(`${API_URL}/generate-doc`, data, {
+            responseType: 'blob',  // Response is treated as a binary file (PDF/Excel)
+        });
 
-        return response.data;  // Return the blob data (PDF)
+        console.log("📥 Response received:", response);
+        return response;  // Return the full response, not just response.data
+
     } catch (error) {
-        console.error('Error generating PDF:', error);
-        throw error;  // Propagate error if needed
+        console.error("🚨 Error generating document:", error);
+        throw error;
     }
 };
+
 
 
 export const getStudentRecords = async () => {

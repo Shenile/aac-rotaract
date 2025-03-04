@@ -11,6 +11,7 @@ import {
   LucideFileUp,
 } from "lucide-react";
 import { useDataContext } from "../contexts/MainDataContext";
+import UploadType from "./UploadType";
 
 export default function BottomToolBar({
   isOpen,
@@ -31,12 +32,13 @@ export default function BottomToolBar({
   startCreate,
   setOpenFileModal,
   openFileModal,
-  filters
+  
 }) {
   const toolbarRef = useRef(null);
   const { startYearOptions, deptOptions } = useDataContext();
   const [showFilters, setShowFilters] = useState(false);
   const [activeButtons, setActiveButtons] = useState([]);
+  const [openGenModal, setOpenGenModal] = useState(false)
 
   const openBottomToolbar = () => setIsOpen(true);
 
@@ -102,7 +104,7 @@ export default function BottomToolBar({
       icon: <Printer size={24} />,
       label: "Print",
       action: () => {
-        handlePrint();
+        setOpenGenModal(!openGenModal);
       },
     },
     {
@@ -237,6 +239,12 @@ export default function BottomToolBar({
                     />
                   </Fragment>
                 ))}
+              </div>
+            )}
+
+            {openGenModal && (
+              <div>
+                <UploadType handlePrint={handlePrint} setGenModal={setOpenGenModal}/>
               </div>
             )}
           </div>

@@ -10,7 +10,7 @@ from db import get_db
 from models import Rotaract_Students
 from typing import List
 import pandas as pd
-from utils.document_generator import prepare_data
+from utils.document_generator import process_data, generate_pdf, generate_xlsx
 from utils.data_preprocessing_utils import standardize_name
 from pydantic_models import StudentLoginModel, StudentBase, StudentCreate, StudentUpdate, AdminLoginModel
 
@@ -227,45 +227,71 @@ def file_upload(file: UploadFile = File(...), db: Session = Depends(get_db)):
     logger.info("File processed and records inserted successfully.")
     return {"message": "File processed and records inserted successfully."}
 
-
 @app.post("/generate-doc")
 async def generate_document(request: Request):
-    # Parse incoming JSON request data
-    request_data = await request.json()
-    print(request_data)
+    try:
+        # Parse incoming JSON request data
+        request_data = await request.json()
+        logger.info("📩 Received request data: %s", request_data)
 
-    data = request_data.get("data", {}).get("dataset")
-    filters = request_data.get("data", {}).get("filters", None)
+        data = request_data.get("dataset")
+        filters = request_data.get("filters", None)
+        file_type = request_data.get("file_type")
+        logger.info("📌 File type requested: %s", file_type)
 
-    # Initialize filters as None by default
-    if filters:
-        # Extract the filter values, defaulting to empty strings if not provided
-        gender = filters.get("gender", "")
-        dept = filters.get("dept", "")
-        batch = filters.get("batch", "")
-        sortBy = filters.get("sortBy", "")
+        if not data:
+            logger.warning("⚠️ No dataset provided in request.")
+            return {"error": "No dataset provided"}, 400
 
+        if file_type == "pdf":
+            if filters:
+                # Extract the filter values, defaulting to empty strings if not provided
+                gender = filters.get("gender", "")
+                dept = filters.get("dept", "")
+                batch = filters.get("batch", "")
+                sortBy = filters.get("sortBy", "")
 
-        # If any filter has a non-empty value, use the filters
-        if gender or dept or batch or sortBy:
-            print("Filters are valid:", filters)
+                if gender or dept or batch or sortBy:
+                    logger.info("✅ Applying filters: %s", filters)
+                else:
+                    filters = None
+                    logger.info("ℹ️ No valid filters applied.")
+
+            else:
+                logger.info("ℹ️ No filters provided, setting to None.")
+                filters = None
+
+            logger.info("📄 Generating PDF document...")
+            pdf_buffer = generate_pdf(data, filters)
+
+            logger.info("✅ PDF generation successful. Sending response.")
+            return StreamingResponse(
+                pdf_buffer,
+                media_type="application/pdf",
+                headers={"Content-Disposition": 'attachment; filename="Rotaract_Students.pdf"'}
+            )
+
+        elif file_type == "xlsx":
+            logger.info("📊 Generating Excel document...")
+            xlsx_buffer = generate_xlsx(data)
+
+            logger.info("✅ Excel generation successful. Sending response.")
+            return StreamingResponse(
+                xlsx_buffer,
+                media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+                headers={"Content-Disposition": 'attachment; filename="Rotaract_Students.xlsx"'}
+            )
+
         else:
-            # If no valid filters, reset to None
-            filters = None
-            print("No valid filters applied.")
-    else:
-        # No filters provided, setting to None
-        print("No filters provided, setting to None.")
-        filters = None
+            logger.error("❌ Invalid file type received: %s", file_type)
+            return {"error": "Invalid file type"}, 400
 
-    # Now, generate the PDF based on the data and filters (if any)
-    pdf_buffer = prepare_data(data, filters)
+    except Exception as e:
+        logger.exception("🚨 An error occurred while processing the document request.")
+        return {"error": "Internal server error"}, 500
 
-    # Streaming the generated PDF as a response
-    return StreamingResponse(
-        pdf_buffer,
-        media_type="application/pdf",
-        headers={"Content-Disposition": "attachment; filename=Rotaract_Students.pdf"}
-    )
+
+
+
 ADMIN_NAME = 'aac-rotaract-admin'
 ADMIN_PASSWORD = 'aac-rotaract-admin'

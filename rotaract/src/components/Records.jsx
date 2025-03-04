@@ -7,15 +7,12 @@ import {
   Printer,
   BookOpen,
   Pen,
-  GraduationCap,
-  Icon,
   UserPlus2,
   LucideFileUp,
   Trash2,
   Filter,
 } from "lucide-react";
 
-import AdminLogin from "./AdminLogin";
 import { useScreenContext } from "../contexts/ScreenContext";
 import {
   deleteAllStudents,
@@ -25,7 +22,6 @@ import {
   updateStudentRecord,
 } from "../../api/api_services";
 import { useDataContext } from "../contexts/MainDataContext";
-import SearchableDropdown from "./SearchableDropDown";
 import FileUpload from "./FileUpload";
 import { usePopUp } from "../contexts/PopUpContext";
 import { getValidationErrors } from "../validation";
@@ -33,7 +29,9 @@ import BottomToolBar from "./BottomToolBar";
 import StudentCards from "./StudentCards";
 import { set, start } from "nprogress";
 import StudentModal from "./StudentModal";
-import { generatePDF } from "../../api/api_services";
+import { generateDocument } from "../../api/api_services";
+import UploadType from "./UploadType";
+import useClickOutside from "../hooks/useClickOutside";
 
 const filterDataBySearch = (data, query) => {
   if (!query) return data;
@@ -215,38 +213,57 @@ export default function Records() {
     setDisplayData(sortedData);
   };
 
-  const handlePrint = async () => {
-    const dataset = displayData;
-
-
-
-    if (displayData) {
-      const data = {
-        dataset,
-        filters: filters,
-      };
-      console.log(data);
-      try {
-        // Call the generatePDF function which handles the API request
-        const pdfBlob = await generatePDF(data);
-
-        // Create a temporary download link
-        const link = document.createElement("a");
-        link.href = URL.createObjectURL(pdfBlob);
-        link.download = "generated_document.pdf"; // Specify the download file name
-
-        // Append the link to the document body (required for Firefox)
-        document.body.appendChild(link);
-
-        // Trigger the download by simulating a click
-        link.click();
-
-        // Clean up: remove the link after triggering the download
-        document.body.removeChild(link);
-      } catch (err) {
-        console.log("Error generating PDF:", err);
-      }
+  const handlePrint = async (file_type) => {
+    if (!displayData) {
+      console.warn("⚠️ No data available to generate the document.");
+      return;
     }
+
+    const data = {
+      dataset: displayData,
+      filters: filters,
+      file_type: file_type,
+    };
+
+    console.log("📤 Sending request to generate document with:", data);
+
+    try {
+      const response = await generateDocument(data);
+
+      // ✅ Use response.headers instead of response.ok
+      const contentType = response.headers["content-type"];
+      console.log("📥 Response Content-Type:", contentType);
+
+      let fileExtension = "";
+      if (contentType.includes("pdf")) {
+        fileExtension = ".pdf";
+      } else if (contentType.includes("spreadsheet")) {
+        fileExtension = ".xlsx";
+      } else {
+        console.error("❌ Unsupported file type received:", contentType);
+        throw new Error("Unsupported file type received.");
+      }
+
+      // ✅ No need for `.blob()`, axios already provides response.data as Blob
+      const blob = response.data;
+      console.log("🔍 Blob received:", blob);
+
+      const fileName = `Rotaract_Students${fileExtension}`;
+      const link = document.createElement("a");
+      link.href = URL.createObjectURL(blob);
+      link.download = fileName;
+
+      document.body.appendChild(link);
+      console.log(`📂 Initiating download: ${fileName}`);
+
+      link.click();
+      document.body.removeChild(link);
+      console.log("✅ Download completed and cleanup done.");
+    } catch (err) {
+      console.error("🚨 Error generating document:", err);
+    }
+
+    
   };
 
   const startEdit = async (index, student) => {
@@ -647,7 +664,7 @@ export default function Records() {
     <div>
       <div className="relative">
         <RecordTableNavBar
-        filters={filters}
+          filters={filters}
           setFilters={setFilters}
           startCreate={startCreate}
           setCreateModal={setCreateModal}
@@ -759,7 +776,7 @@ function RecordTableNavBar({
   setCreateModal,
   startCreate,
   setFilters,
-  filters
+  filters,
 }) {
   const [openToolBar, setToolBar] = useState(false);
   const toolBarRef = useRef(null);
@@ -772,6 +789,10 @@ function RecordTableNavBar({
   const sortByOptions = ["name", "roll_no", "email", "dept", "batch"];
   const [recordsCount, setRecordsCount] = useState(null);
   const [openBtmToolBar, setBtmToolBar] = useState(false);
+  const [genModal, setGenModal] = useState(false);
+  const genModalRef = useRef(null);
+
+  useClickOutside(genModalRef, () => setGenModal(false));
 
   const handleClickOutside = (event) => {
     // Check if click is outside the toolbar and the toggle button
@@ -1109,29 +1130,40 @@ function RecordTableNavBar({
             <p>{readMode ? "Read" : "Write"}</p>
           </button>
 
-          <button
-            onClick={handlePrint}
-            className={`relative flex gap-2 items-center px-3 py-2 rounded-full group 
+          <div className="relative">
+            <button
+              onClick={() => setGenModal(!genModal)}
+              className={`flex gap-2 items-center px-3 py-2 rounded-full group 
             border border-gray-400 hover:bg-gray-300`}
-            disabled={!readMode || loading}
-          >
-            <Printer
-              size={20}
-              className={`text-orange-700 ${!readMode && "text-opacity-50"} `}
-            />
-            <p className={`text-gray-900 ${!readMode && "text-opacity-50"}`}>
-              Print
-            </p>
-
-            {!readMode && (
-              <p
-                className="p-0 py-1 bg-gray-200 bg-opacity-100 text-xs absolute top-11 right-1/4 invisible 
-          group-hover:visible border border-gray-400 shadow-md rounded-full min-w-[250px]"
-              >
-                printing is not supported in edit mode.
+              disabled={!readMode || loading }
+            >
+              <Printer
+                size={20}
+                className={`text-orange-700 ${!readMode && "text-opacity-50"} `}
+              />
+              <p className={`text-gray-900 ${!readMode && "text-opacity-50"}`}>
+                Print
               </p>
+
+              {!readMode && (
+                <p
+                  className="p-0 py-1 bg-gray-200 bg-opacity-100 text-xs absolute top-11 right-1/4 invisible 
+          group-hover:visible border border-gray-400 shadow-md rounded-full min-w-[250px]"
+                >
+                  printing is not supported in edit mode.
+                </p>
+              )}
+            </button>
+
+            {genModal && (
+              <div
+                className="hidden md:block absolute top-12 right-1/4 min-w-[250px] border border-gray-300 rounded-md"
+                ref={genModalRef}
+              >
+                <UploadType handlePrint={handlePrint} setGenModal={setGenModal}/>
+              </div>
             )}
-          </button>
+          </div>
 
           {!readMode && (
             <button
@@ -1191,6 +1223,8 @@ function RecordTableNavBar({
 
       {/* MOBILE NAV BAR */}
       <BottomToolBar
+        genModal={genModal}
+        setGenModal={setGenModal}
         filters={filters}
         setOpenFileModal={setOpenFileModal}
         openFileModal={openFileModal}
