@@ -1,5 +1,5 @@
 import logging
-import os
+import os, json
 import tempfile
 from fastapi import UploadFile, File
 from fastapi import FastAPI, HTTPException, Depends, Request
@@ -13,6 +13,12 @@ import pandas as pd
 from utils.document_generator import process_data, generate_pdf, generate_xlsx
 from utils.data_preprocessing_utils import standardize_name
 from pydantic_models import StudentLoginModel, StudentBase, StudentCreate, StudentUpdate, AdminLoginModel
+from dotenv import load_dotenv
+
+load_dotenv()
+
+AUTHORIZED_ADMINS = json.loads(os.getenv("AUTHORIZED_ADMINS", "[]"))
+ADMIN_PASSWORD = os.getenv("ADMIN_PASSWORD") or "aac-rotaract-admin"
 
 # FastAPI app initialization
 app = FastAPI()
@@ -146,16 +152,16 @@ def admin_login(login_data: AdminLoginModel, db: Session = Depends(get_db)):
     name, password = login_data.name, login_data.password
 
     # Validate the roll number and password
-    if name == password:
-        if name == ADMIN_NAME and password == ADMIN_PASSWORD:
-            return {
-                "name": name,
-                "password": password
-            }
-        else:
-            raise HTTPException(status_code=404, detail="Invalid Credentials")
+    # if name == password:
+    if name in AUTHORIZED_ADMINS and password == ADMIN_PASSWORD:
+        return {
+            "name": name,
+            "password": password
+        }
     else:
-        raise HTTPException(status_code=401, detail="Invalid admin id or password")
+        raise HTTPException(status_code=404, detail="Invalid Credentials")
+    # else:
+    #     raise HTTPException(status_code=401, detail="Invalid admin id or password")
 
 @app.post("/upload")
 def file_upload(file: UploadFile = File(...), db: Session = Depends(get_db)):

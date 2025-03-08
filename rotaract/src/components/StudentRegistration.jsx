@@ -62,17 +62,16 @@ export default function StudentRegistration() {
       return; // Don't proceed with submission if there are invalid fields
     }
 
-    console.log(formData);
     setLoading(true);
 
     try {
       const res = await registerStudent(formData);
 
-      console.log("Response from API:", res);
+
       resetFormData();
       alert(res);
     } catch (err) {
-      console.error("Error during submission:", err);
+     
       alert("Error: " + err);
     }
     setLoading(false);

@@ -130,14 +130,15 @@ export default function BottomToolBar({
 
       <div
         ref={toolbarRef}
-        className="fixed bottom-0 left-0 right-0 h-3/4 transition-transform duration-300 transform z-45 bg-white"
+        className="fixed bottom-0 w-full  h-3/4 transition-transform duration-300 transform z-45 bg-white"
         style={{
           transform: isOpen ? "translateY(0%)" : "translateY(80%)",
         }}
       >
         <button
           type="button"
-          className="absolute  left-[45%] p-3 -top-5 bg-green-800 text-white rounded-full shadow-inner shadow-green-600 hover:bg-green-800 z-45 "
+          className="absolute left-1/2 -translate-x-1/2 p-3.5 -top-5 bg-green-800 text-white 
+          rounded-full shadow-inner shadow-green-600 hover:bg-green-800 z-45 "
           onClick={() => setIsOpen(!isOpen)}
         >
           <ChevronUp
@@ -154,12 +155,12 @@ export default function BottomToolBar({
         >
           <div className="mt-4 pb-2 px-1 h-full flex flex-col gap-2 overflow-y-auto">
             {/* SEARCH BAR */}
-            <div className="group mt-1 w-full md:w-1/2 flex flex-col gap-2 z-10">
+            <div className="group mt-1 py-2 w-full md:w-1/2 flex flex-col gap-2 z-10">
               <div className="relative flex items-center w-92 z-10">
                 {/* Search Icon */}
                 <Search
                   className="absolute left-3 text-gray-400 group-focus-within:text-blue-500"
-                  size={20}
+                  size={24}
                 />
 
                 {/* Input Field */}
@@ -169,14 +170,16 @@ export default function BottomToolBar({
                   onChange={handleSearchChange}
                   placeholder="search records..."
                   disabled={loading}
-                  className="w-full pl-10 pr-12 py-2 border border-gray-400 rounded-full bg-gray-100 focus:border-0 focus:outline-none focus:ring-2 focus:ring-blue-500 transition"
+                  className="w-full py-3 pl-12 border border-gray-400 rounded-full bg-gray-100 
+                  focus:border-0 focus:outline-none focus:ring-2 focus:ring-blue-500 transition
+                  placeholder:text-base"
                 />
               </div>
             </div>
 
             {/* FUNCTIONALITY ICONS */}
             {/* Dynamic Icons with Labels */}
-            <div className="my-4 flex gap-4 justify-start flex-wrap items-center">
+            <div className="my-4 flex gap-4 justify-start flex-wrap items-start">
               {toolbarItems.map((item, index) => (
                 <button
                   key={index}
@@ -185,10 +188,10 @@ export default function BottomToolBar({
                   {...(item.label === "Print" && { disabled: !readMode })}
                 >
                   <div
-                    className={`text-white p-2 rounded-full border-2 
+                    className={`text-white p-3 rounded-full border-2 
                      ${
                        activeButtons.includes(item.label) ?
-                       `bg-yellow-500 ` : "bg-green-800 "
+                       `bg-amber-500` : "bg-green-800 shadow-inner shadow-green-600"
                      }`}
 
                      
@@ -196,13 +199,13 @@ export default function BottomToolBar({
                     {item.icon}
                   </div>
 
-                  <p className="text-xs mt-1">{item.label}</p>
+                  <p className="text-sm mt-1 ">{item.label}</p>
                 </button>
               ))}
             </div>
 
             {/* FILTER BAR */}
-            {showFilters && (
+            {showFilters && isOpen && (
               <div className="flex flex-col gap-2 justify-start items-start -translate-y-1 ease-in">
                 {[
                   {
@@ -242,7 +245,7 @@ export default function BottomToolBar({
               </div>
             )}
 
-            {openGenModal && (
+            {openGenModal && isOpen && (
               <div>
                 <UploadType handlePrint={handlePrint} setGenModal={setOpenGenModal}/>
               </div>

@@ -80,7 +80,7 @@ export default function SideBar({ setOpenSideBar = null }) {
       {/* Login/Logout Section */}
       {/* Login/Logout Section */}
       <div className="ml-6 mr-4">
-        <div class="border-t border-gray-400 my-4"></div>
+        <div class=" my-4"></div>
         {user && user.user_type ? (
           <button
             onClick={handlelogout}

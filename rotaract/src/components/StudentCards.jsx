@@ -13,12 +13,13 @@ export default function StudentCards({
 
   // useClickOutside(modalRef, actions.cancelEdit);
   return (
-    <div className="md:hidden text-sm p-4 grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6 pb-12">
+    <div className="md:hidden text-sm grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-2 pt-4 pb-36">
+      <p className="font-semibold text-base border-b pb-4 border-gray-300 text-gray-900 text-center">Rotaract Students Details</p>
       {/* CARDS */}
       {displayData.map((student, index) => (
         <div
           key={index}
-          className="flex flex-col bg-white border border-gray-300 shadow-inner shadow-gray-200 rounded-lg overflow-hidden 
+          className="flex flex-col bg-white border-b px-2 border-gray-200 overflow-hidden 
          "
         >
           {!readMode && (

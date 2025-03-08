@@ -12,7 +12,7 @@ export default function CollegeHeader() {
       
 
       <div className="flex flex-col justify-start md:justify-center md:items-center font-semibold">
-        <h1 className="tracking-wide text-md sm:text-lg md:text-2xl font-bold">ARUL ANANDAR COLLEGE (AUTONOMOUS)</h1>
+        <h1 className="tracking-wide text-md sm:text-lg  md:text-2xl font-bold">ARUL ANANDAR COLLEGE (AUTONOMOUS)</h1>
         <p className="text-xs sm:text-md md:text-lg">(AFFILIATED TO MADURAI KAMARAJ UNIVERSITY)</p>
         <p className="text-xs sm:text-md md:text-lg">KARUMATHUR - 625 514, MADURAI</p>
       </div>

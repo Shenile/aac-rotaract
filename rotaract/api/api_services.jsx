@@ -2,6 +2,7 @@ import axios from 'axios';
 
 
 const API_URL = 'http://localhost:8000'; 
+// const API_URL = 'http://192.168.183.105:8000';
 
 export const registerStudent = async (studentData) => {
     try {

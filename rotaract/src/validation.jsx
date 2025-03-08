@@ -35,7 +35,7 @@ const buildStudentSchema = (deptOptions, startYearOptions, endYearOptions) => {
 export default buildStudentSchema;
 
 export const getValidationErrors = async (data, deptOptions, startYearOptions, endYearOptions) => {
-  console.log("Got data:", data);
+  
 
   try {
     // Build schema dynamically based on options
