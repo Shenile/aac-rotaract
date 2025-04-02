@@ -24,7 +24,6 @@ def process_data(data):
 
     return processed_data
 
-
 def generate_pdf(data, filters = None):
 
     processed_data = process_data(data)
@@ -89,7 +88,6 @@ def generate_pdf(data, filters = None):
     pdf_buffer.seek(0)
 
     return pdf_buffer
-
 
 def generate_xlsx(data):
     print("I am executed")

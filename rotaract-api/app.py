@@ -2,7 +2,7 @@ import logging
 import os, json
 import tempfile
 from fastapi import UploadFile, File
-from fastapi import FastAPI, HTTPException, Depends, Request
+from fastapi import FastAPI, HTTPException, Depends, Request, Response
 from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy.orm import Session
 from fastapi.responses import StreamingResponse
@@ -14,6 +14,8 @@ from utils.document_generator import process_data, generate_pdf, generate_xlsx
 from utils.data_preprocessing_utils import standardize_name
 from pydantic_models import StudentLoginModel, StudentBase, StudentCreate, StudentUpdate, AdminLoginModel
 from dotenv import load_dotenv
+from utils.auth_handler import create_session, validate_session, session_required
+
 
 load_dotenv()
 
@@ -22,14 +24,15 @@ ADMIN_PASSWORD = os.getenv("ADMIN_PASSWORD") or "aac-rotaract-admin"
 
 # FastAPI app initialization
 app = FastAPI()
+
 origins = [
-    "http://localhost:5173",  # Update this URL if your frontend is hosted elsewhere
-    "http://127.0.0.1:5173",  # Sometimes used with localhost
+    "http://localhost:5173",
+    "http://127.0.0.1:5173",
 ]
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=origins,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -45,7 +48,8 @@ def read_root():
 
 # Create a new student
 @app.post("/students/", response_model=StudentBase)
-def create_student(student: StudentCreate, db: Session = Depends(get_db)):
+@session_required
+async def create_student(student: StudentCreate, request: Request, db: Session = Depends(get_db)):
     logger.info(f"Attempting to create student with email: {student.email}")
     db_student = db.query(Rotaract_Students).filter(Rotaract_Students.email == student.email).first()
     if db_student:
@@ -61,7 +65,9 @@ def create_student(student: StudentCreate, db: Session = Depends(get_db)):
 
 # Get all students
 @app.get("/students/", response_model=List[StudentBase])
-def get_students(db: Session = Depends(get_db)):
+@session_required
+async def get_students(request: Request, db: Session = Depends(get_db)):
+    logger.info(f'Cookies : {request.cookies}')
     logger.info("Fetching all students")
     students = db.query(Rotaract_Students).all()
     logger.info(students)
@@ -70,7 +76,8 @@ def get_students(db: Session = Depends(get_db)):
 
 # Get student by ID
 @app.get("/students/{student_id}", response_model=StudentBase)
-def get_student(student_id: int, db: Session = Depends(get_db)):
+@session_required
+async def get_student(student_id: int, request: Request, db: Session = Depends(get_db)):
     logger.info(f"Fetching student with ID: {student_id}")
     student = db.query(Rotaract_Students).filter(Rotaract_Students.id == student_id).first()
     if not student:
@@ -81,7 +88,8 @@ def get_student(student_id: int, db: Session = Depends(get_db)):
 
 # Update student info
 @app.put("/students/{student_id}", response_model=StudentBase)
-def update_student(student_id: int, student: StudentUpdate, db: Session = Depends(get_db)):
+@session_required
+async def update_student(student_id: int, request: Request, student: StudentUpdate, db: Session = Depends(get_db)):
     logger.info(f"Attempting to update student with ID: {student_id}")
     db_student = db.query(Rotaract_Students).filter(Rotaract_Students.id == student_id).first()
     if not db_student:
@@ -99,7 +107,8 @@ def update_student(student_id: int, student: StudentUpdate, db: Session = Depend
 
 # Delete student
 @app.delete("/students/{student_id}")
-def delete_student(student_id: int, db: Session = Depends(get_db)):
+@session_required
+async def delete_student(student_id: int, request: Request,  db: Session = Depends(get_db)):
     logger.info(f"Attempting to delete student with ID: {student_id}")
     db_student = db.query(Rotaract_Students).filter(Rotaract_Students.id == student_id).first()
     if not db_student:
@@ -112,7 +121,8 @@ def delete_student(student_id: int, db: Session = Depends(get_db)):
     return {"message": "Student deleted successfully"}
 
 @app.delete("/students/")
-def delete_students(db: Session = Depends(get_db)):
+@session_required
+async def delete_students(request: Request, db: Session = Depends(get_db)):
     try:
         db.query(Rotaract_Students).delete()
         db.commit()
@@ -124,16 +134,21 @@ def delete_students(db: Session = Depends(get_db)):
         raise HTTPException(status_code=500, detail=f"Error during cleanup: {str(e)}")
 
 @app.post("/student-login")
-def student_login(login_data: StudentLoginModel, db: Session = Depends(get_db)):
+def student_login(login_data: StudentLoginModel, responsw: Response, db: Session = Depends(get_db)):
     roll_no, password = login_data.roll_no, login_data.password
-    print(roll_no, password)
 
-    # Query the student by roll number
     student = db.query(Rotaract_Students).filter(Rotaract_Students.roll_no == roll_no).first()
-    print(f'student {student}')
-    # Check if student exists and roll_no matches password
+
     if student:
-        if roll_no == password:  # Roll number is used as the password
+        if roll_no == password:
+            session_id = create_session()
+            response.set_cookie(key="session_id",
+                                value=session_id,
+                                httponly=True,
+                                samesite="Lax",
+                                secure=False,
+                                path='/')
+
             return {
                 "message": "Login successful",
                 "student_data": {
@@ -148,33 +163,33 @@ def student_login(login_data: StudentLoginModel, db: Session = Depends(get_db)):
         raise HTTPException(status_code=404, detail="Student not found")
 
 @app.post("/admin-login")
-def admin_login(login_data: AdminLoginModel, db: Session = Depends(get_db)):
+def admin_login(login_data: AdminLoginModel, response : Response, db: Session = Depends(get_db)):
+    print(login_data)
     name, password = login_data.name, login_data.password
 
-    # Validate the roll number and password
-    # if name == password:
     if name in AUTHORIZED_ADMINS and password == ADMIN_PASSWORD:
+        session_id = create_session()
+        response.set_cookie(key="session_id",
+                            value=session_id,
+                            httponly=True,
+                            samesite="Lax",
+                            secure=False,
+                            path='/')
         return {
             "name": name,
             "password": password
         }
     else:
         raise HTTPException(status_code=404, detail="Invalid Credentials")
-    # else:
-    #     raise HTTPException(status_code=401, detail="Invalid admin id or password")
 
 @app.post("/upload")
-def file_upload(file: UploadFile = File(...), db: Session = Depends(get_db)):
-    logger.info(f"Received file upload request for file: {file.filename}")
-
-    # Read the file content
+@session_required
+def file_upload(request: Request, file: UploadFile = File(...), db: Session = Depends(get_db)):
     try:
         logger.info(f"File content type: {file.content_type}")
-        # Handle CSV files
         if file.content_type == "text/csv":
             logger.info("Processing CSV file...")
             df = pd.read_csv(file.file)
-        # Handle Excel files (both .xls and .xlsx)
         elif file.content_type in ["application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
                                    "application/vnd.ms-excel"]:
             logger.info("Processing Excel file...")
@@ -234,6 +249,7 @@ def file_upload(file: UploadFile = File(...), db: Session = Depends(get_db)):
     return {"message": "File processed and records inserted successfully."}
 
 @app.post("/generate-doc")
+@session_required
 async def generate_document(request: Request):
     try:
         # Parse incoming JSON request data
@@ -296,8 +312,3 @@ async def generate_document(request: Request):
         logger.exception("🚨 An error occurred while processing the document request.")
         return {"error": "Internal server error"}, 500
 
-
-
-
-ADMIN_NAME = 'aac-rotaract-admin'
-ADMIN_PASSWORD = 'aac-rotaract-admin'
