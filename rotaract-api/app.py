@@ -1,6 +1,6 @@
 import logging
 import os, json
-import tempfile
+# import tempfile
 from fastapi import UploadFile, File
 from fastapi import FastAPI, HTTPException, Depends, Request, Response
 from fastapi.middleware.cors import CORSMiddleware

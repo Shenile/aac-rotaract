@@ -9,7 +9,8 @@ export const registerStudent = async (studentData) => {
         const response = await axios.post(`${API_URL}/students/`, studentData, {
             headers: {
                 'Content-Type': 'application/json'
-            }
+            },
+            withCredentials:true,
         });
         return response.data;
     } catch (error) {
@@ -20,27 +21,26 @@ export const registerStudent = async (studentData) => {
 
 export const generateDocument = async (data) => {
     try {
-        console.log("📤 Sending request to backend to generate document:", data);
+        
         
         const response = await axios.post(`${API_URL}/generate-doc`, data, {
-            responseType: 'blob',  // Response is treated as a binary file (PDF/Excel)
-        });
+            responseType: 'blob',
+            withCredentials: true
+        },);
 
-        console.log("📥 Response received:", response);
-        return response;  // Return the full response, not just response.data
+        return response;
 
     } catch (error) {
-        console.error("🚨 Error generating document:", error);
         throw error;
     }
 };
 
-
-
 export const getStudentRecords = async () => {
     try {
 
-        const res = await axios.get(`${API_URL}/students/`)
+        const res = await axios.get(`${API_URL}/students/`, {
+            withCredentials: true,
+        })
         return res.data;
 
     } catch (err) {
@@ -52,7 +52,9 @@ export const getStudentRecords = async () => {
 export const getStudentRecord = async (id) => {
     try {
 
-        const res = await axios.get(`${API_URL}/students/${id}`)
+        const res = await axios.get(`${API_URL}/students/${id}`,
+            {withCredentials: true}
+        )
         return res.data;
 
     } catch (err) {
@@ -67,7 +69,8 @@ export const updateStudentRecord = async (data) => {
         const response = await axios.put(`${API_URL}/students/${data.id}`, data, {
             headers: {
                 'Content-Type': 'application/json'
-            }
+            },
+            withCredentials: true
         });
         return response.data;
 
@@ -80,7 +83,9 @@ export const updateStudentRecord = async (data) => {
 export const deleteStudentRecord = async (id) => {
     try {
 
-        const response = await axios.delete(`${API_URL}/students/${id}`);
+        const response = await axios.delete(`${API_URL}/students/${id}`,{
+            withCredentials: true
+        });
         return response.data;
 
     } catch (err) {
@@ -92,7 +97,9 @@ export const deleteStudentRecord = async (id) => {
 export const deleteAllStudents = async () => {
     try {
         // Make the DELETE request to the backend API
-        const response = await axios.delete(`${API_URL}/students/`);
+        const response = await axios.delete(`${API_URL}/students/`, {
+            withCredentials: true
+        });
         return response.data; // Return the response data
     } catch (err) {
         // Log the error details for debugging
@@ -100,6 +107,7 @@ export const deleteAllStudents = async () => {
         throw err; // Rethrow the error to handle it in the calling code
     }
 };
+
 export const studentLogin = async (loginData) => {
     try {
         const response = await axios.post(`${API_URL}/student-login`, loginData, {
@@ -112,21 +120,24 @@ export const studentLogin = async (loginData) => {
         console.error('Error logging in student:', error.response ? error.response.data : error.message);
         throw error;
     }
-}
+};
 
 export const adminLogin = async (loginData) => {
     try {
+        console.log(loginData);
         const response = await axios.post(`${API_URL}/admin-login`, loginData, {
             headers: {
                 'Content-Type': 'application/json'
-            }
+            },
+            withCredentials: true
         });
-        return response.data; // Success: returns "Login successful"
+        console.log(response)
+        return response.data; 
     } catch (error) {
         console.error('Error logging in admin:', error.response ? error.response.data : error.message);
         throw error;
     }
-}
+};
 
 export const uploadFile = async (file) => {
     try {
@@ -139,6 +150,7 @@ export const uploadFile = async (file) => {
         headers: {
           "Content-Type": "multipart/form-data",
         },
+        withCredentials: true
       });
   
     
@@ -147,5 +159,6 @@ export const uploadFile = async (file) => {
       console.error("Error uploading file:", error);
       alert("Failed to upload file.");
     }
-  };
+};
+
 

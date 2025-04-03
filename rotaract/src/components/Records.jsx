@@ -362,9 +362,8 @@ export default function Records() {
     setEditedData(emptyRecord);
   };
 
-  const createStudent = () => {};
-
   const handleAddData = async () => {
+    console.log("I am called")
     if (!editedData || Object.values(editedData).some((val) => val === "")) {
       console.log(editedData);
       alert("All fields must be filled before saving.");
@@ -384,6 +383,7 @@ export default function Records() {
       setValidationErrors({});
       setLoading(true);
       try {
+        console.log(editedData)
         await registerStudent(editedData);
         await fetchStudentsData();
         cancelEdit();
@@ -1171,7 +1171,6 @@ function RecordTableNavBar({
               className="group relative flex gap-1 items-center px-2 py-2 rounded-full  hover:bg-gray-300 hover:border hover:border-gray-400"
               onClick={() => {
                 startCreate();
-                // addNewData();
               }}
             >
               <UserPlus2 size={20} className="text-gray-700" />
