@@ -122,6 +122,3 @@ This project, **Rotaract Club Student Data Management System**, was developed to
 ## **License**
 This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
 
----
-
-This updated README file reflects the new tech stack you've implemented, including the use of React with Vite, Tailwind CSS, FastAPI, MySQL, and SQLAlchemy ORM. Adjust any sections as needed based on your actual setup.
