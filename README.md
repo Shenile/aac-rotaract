@@ -116,7 +116,18 @@ This project, **Rotaract Club Student Data Management System**, was developed to
 - Students or Admin can upload an Excel file to add multiple records at once.
 - The system will process the data and update the database accordingly.
 
-## **Contribution**
+## ** Demo Screenshots **
+*/homepage*
+![image](https://github.com/user-attachments/assets/dfdae901-f47c-4af3-98d7-172988c46459)
+
+*/admin-dashboard*
+![image](https://github.com/user-attachments/assets/eb75a2b7-5fba-408f-945c-e3ba619c1ca5)
+
+*/student-profile*
+![image](https://github.com/user-attachments/assets/06fe41e0-4fbf-43d7-acfe-defdaf03e917)
+
+*/login-page*
+![image](https://github.com/user-attachments/assets/d52f5e58-87c3-4c12-9602-591b579ce76b)
 
 
 ## **License**
